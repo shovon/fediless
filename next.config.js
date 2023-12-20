@@ -1,4 +1,13 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {}
+const nextConfig = {
+	async rewrites() {
+		return [
+			{
+				source: "/.well-known/webfinger",
+				destination: "/api/webfinger",
+			},
+		];
+	},
+};
 
-module.exports = nextConfig
+module.exports = nextConfig;
