@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { origin, actor } from "@/lib/constants";
+import { origin, actor, preferredUsername, host } from "@/lib/constants";
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
 	// TODO: properly filter things out.
@@ -9,7 +9,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
 		.status(200)
 		.send(
 			JSON.stringify({
-				subject: "acct:main@fediless.salrahman.com",
+				subject: `acct:${preferredUsername}@${host}`,
 				aliases: [origin, actor],
 				links: [
 					{

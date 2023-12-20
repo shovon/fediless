@@ -1,4 +1,6 @@
+export const host = process.env.SERVER_HOST;
 export const origin = `https://${process.env.SERVER_HOST}`;
+export const preferredUsername = "actor";
 export const actor = `${origin}/api/actor`;
 export const inbox = `${origin}/api/inbox`;
 export const outbox = `${origin}/api/outbox`;

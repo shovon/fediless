@@ -7,6 +7,7 @@ import {
 	following,
 	followers,
 	liked,
+	preferredUsername,
 } from "@/lib/constants";
 
 export default async function handler(
@@ -40,7 +41,7 @@ export default async function handler(
 				following,
 				followers,
 				liked,
-				preferredUsername: "actor",
+				preferredUsername: preferredUsername,
 				publicKey: {
 					id: `${actor}#main-key`,
 					owner: actor,
