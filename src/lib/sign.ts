@@ -40,8 +40,8 @@ export async function sign(
 		"Signature",
 		`keyId="${
 			process.env.SERVER_HOST
-		}#main-key",algorithm="hs2019",headers="${encodedHeaders.map(
-			([left]) => left
-		)}",signature="${signatureHex}"`
+		}#main-key",algorithm="hs2019",headers="${encodedHeaders
+			.map(([left]) => left)
+			.join(" ")}",signature="${signatureHex}"`
 	);
 }

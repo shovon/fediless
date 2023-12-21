@@ -32,7 +32,9 @@ export async function send(inbox: string, activity: any) {
 			"sha-256=" + Buffer.from(digest).toString("base64")
 		);
 
-		sign(
+		console.log("digest", req.getHeader("Digest"));
+
+		await sign(
 			req,
 			crypto.createPrivateKey({
 				key: privateKeyPem,
