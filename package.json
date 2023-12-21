@@ -9,6 +9,8 @@
 		"lint": "next lint"
 	},
 	"dependencies": {
+		"@types/jsonld": "^1.5.13",
+		"jsonld": "^8.3.2",
 		"next": "14.0.4",
 		"react": "^18",
 		"react-dom": "^18"
