@@ -1,45 +1,182 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import * as jsonld from "jsonld";
-import { origin } from "@/lib/constants";
-import { acceptFollow } from "../../lib/accept-follow";
+import { origin, actor as actorIRI } from "@/lib/constants";
+import { acceptFollow } from "@/lib/accept-follow";
 import { lookupActor } from "@/lib/lookup-actor";
+import {
+	arrayOf,
+	object,
+	string,
+	InferType,
+	unknown,
+} from "@/lib/type-guardian";
+import { objectMap } from "@/lib/object-map";
+import { PrismaClient } from "@prisma/client";
 
-function forceArray<T>(value: T | T[]): T[] {
-	if (Array.isArray(value)) {
-		return value;
+const prisma = new PrismaClient();
+
+const idNodeSchema = object({
+	"@id": string(),
+});
+
+const activityStreamsPrefix = "https://www.w3.org/ns/activitystreams#";
+
+const followActivitySchema = objectMap(
+	{
+		[`${activityStreamsPrefix}#actor`]: "actor",
+		[`${activityStreamsPrefix}#object`]: "actor",
+	},
+	{
+		["@id"]: string(),
+		actor: arrayOf(idNodeSchema),
+		object: arrayOf(idNodeSchema),
 	}
-	return [value];
-}
+);
 
-const activityStreamsPrefix = "https://www.w3.org/ns/activitystreams";
-
-function extractID(value: string | { "@id": string }) {
-	if (typeof value === "string") {
-		return value;
+const undoActivitySchema = objectMap(
+	{
+		[`${activityStreamsPrefix}#actor`]: "actor",
+		[`${activityStreamsPrefix}#object`]: "actor",
+	},
+	{
+		["@id"]: string(),
+		actor: arrayOf(idNodeSchema),
+		object: arrayOf(unknown()),
 	}
-	return value[`@id`];
-}
+);
+
+type FollowActivity = InferType<typeof followActivitySchema>;
 
 export default async function handler(
 	req: NextApiRequest,
 	res: NextApiResponse
 ) {
-	const nodes = await jsonld.expand(JSON.parse(req.body));
+	// TODO: check the digest and signature. Otherwise, people can troll us badly.
+	const document = await JSON.parse(req.body);
+
+	const nodes = await jsonld.expand(document);
+
 	if (nodes.length !== 1) {
 		res.status(400).json({
 			[`${origin}/ns#error`]: [
 				{
-					"@value": "Invalid activity",
+					["@value"]: "Invalid activity",
 				},
 			],
 		});
+		return false;
 	}
+
 	const [activity] = nodes;
-	if (activity["@type"]?.includes(`${activityStreamsPrefix}#Follow`)) {
-		for (const actor of forceArray(
-			activity[`${activityStreamsPrefix}#actor`]
-		)) {
-			await lookupActor((actor as jsonld.NodeObject)["@id"] as string);
-		}
+
+	switch (true) {
+		case activity["@type"]?.includes(`${activityStreamsPrefix}#Follow`):
+			{
+				const validation = followActivitySchema.validate(activity);
+				if (!validation.isValid) {
+					// Respond by telling the sender that they screwed up.
+					res.status(400);
+					res.setHeader("Content-Type", "application/ld+json");
+					res.write(
+						JSON.stringify({
+							[`${origin}/ns#error`]: [
+								{
+									["@value"]: "Invalid activity",
+								},
+							],
+						})
+					);
+					return;
+				}
+				for (const recipient of validation.value.object) {
+					if (recipient["@id"] !== actorIRI) {
+						// TODO: maybe we should just reject the activity?
+
+						continue;
+					}
+
+					for (const actor of validation.value.actor) {
+						const actorObject = await lookupActor(actor["@id"]);
+						for (const inbox of actorObject.inbox) {
+							// TODO: add to database.
+							prisma.followers.create({
+								data: {
+									actorId: actor["@id"],
+									followId: validation.value["@id"],
+									acceptId: `${actorIRI}#accept/follow/${Date.now()}`,
+								},
+							});
+							await acceptFollow(inbox["@id"], document);
+						}
+					}
+					break;
+				}
+			}
+			break;
+		case activity["@type"]?.includes(`${activityStreamsPrefix}#Undo`):
+			{
+				// {
+				//   "@context":"https://www.w3.org/ns/activitystreams",
+				//   "id":"https://techhub.social/users/manlycoffee#follows/1196224/undo",
+				//   "type":"Undo",
+				//   "actor":"https://techhub.social/users/manlycoffee",
+				//   "object":{
+				//     "id":"https://techhub.social/4e82a642-3472-46fe-a28d-abb8dd709fc6",
+				//     "type":"Follow",
+				//     "actor":"https://techhub.social/users/manlycoffee",
+				//     "object":"https://feditest.salrahman.com/activity/actors/john13"
+				//   }
+				// }
+				const validation = undoActivitySchema.validate(activity);
+				if (!validation.isValid) {
+					// Respond by telling the sender that they screwed up.
+					res.status(400);
+					res.setHeader("Content-Type", "application/json");
+					res.write(
+						JSON.stringify({
+							[`${origin}/ns#error`]: [
+								{
+									["@value"]: "Invalid activity",
+								},
+							],
+						})
+					);
+					return;
+				}
+				if (Array.isArray(validation.value.object)) {
+					for (const obj of validation.value.object) {
+						switch (true) {
+							case obj["@type"]?.includes(`${activityStreamsPrefix}#Follow`):
+								{
+									const validation = followActivitySchema.validate(obj);
+									if (!validation.isValid) {
+										// Respond by telling the sender that they screwed up.
+										continue;
+									}
+
+									// TODO: starting to feel lazy. Try to match the actors list
+									// to the parent undo activity. But for now, this follow and
+									// undo should be fine.
+									for (const recipient of validation.value.object) {
+										if (recipient["@id"] !== actorIRI) {
+											continue;
+										}
+										prisma.followers.delete({
+											where: {
+												actorId: recipient["@id"],
+											},
+										});
+									}
+								}
+								break;
+						}
+					}
+				}
+			}
+			break;
 	}
+
+	res.status(200);
+	res.setHeader("Content-Type", "application/ld+json");
+	res.write("{}");
 }

@@ -12,7 +12,8 @@ datasource db {
 }
 
 model Followers {
-  id        Int    @id @default(autoincrement())
-  actor_id  String @unique
-  accept_id String @unique
+  id       Int    @id @default(autoincrement())
+  actorId  String @unique
+  followId String
+  acceptId String
 }
