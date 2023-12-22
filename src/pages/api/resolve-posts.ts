@@ -6,8 +6,13 @@ import {
 	post as postsUrlTemplate,
 } from "@/lib/constants";
 import { send as sendActivity } from "@/lib/send-activity";
+import { mapFields } from "@/lib/mapper";
+import { postObject } from "../../lib/post-object";
+import * as jsonld from "jsonld";
 
 const prisma = new PrismaClient();
+
+const activityStreamsPrefix = "https://www.w3.org/ns/activitystreams#";
 
 export default async function handler(
 	req: NextApiRequest,
@@ -24,23 +29,35 @@ export default async function handler(
 	const followers = await prisma.followers.findMany({});
 
 	for (const post of posts) {
-		const activity = {
+		const activityObject = {
 			"@context": "https://www.w3.org/ns/activitystreams",
-
-			id: `${mainActorIri}#/${Date.now()}/create-post/${post.id}}`,
+			id: `${mainActorIri}#/${Date.now()}/create-post/${post.id}`,
 			type: "Create",
 			actor: mainActorIri,
 
-			object: {
-				id: postsUrlTemplate.replace(":id", post.id.toString()),
-				type: "Note",
-				published: post.createdAt.toISOString(),
-				attributedTo: mainActorIri,
+			// object: {
+			// 	id: postsUrlTemplate.replace(":id", post.id.toString()),
+			// 	type: "Note",
+			// 	published: post.createdAt.toISOString(),
+			// 	attributedTo: mainActorIri,
+			// 	content: post.content,
+			// 	to: "https://www.w3.org/ns/activitystreams#Public",
+			// },
+
+			object: postObject({
+				id: post.id,
+				published: post.createdAt,
+				senderID: mainActorIri,
 				content: post.content,
-				to: "https://www.w3.org/ns/activitystreams#Public",
-			},
+				recipientId: "https://www.w3.org/ns/activitystreams#Public",
+			}),
 		};
 
+		const activity = await jsonld.compact(activityObject, [
+			"https://www.w3.org/ns/activitystreams",
+		] as any);
+
+		console.log(JSON.stringify(activityObject, null, 2));
 		console.log(JSON.stringify(activity, null, 2));
 
 		for (const follower of followers) {
