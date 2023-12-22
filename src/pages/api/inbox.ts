@@ -189,12 +189,14 @@ export default async function handler(
 										try {
 											await prisma.followers.delete({
 												where: {
-													actorId: recipient["@id"],
+													actorId: validation.value.actor[0]["@id"],
 												},
 											});
-										} catch {}
 
-										console.log("Deleted follower");
+											console.log("Deleted follower");
+										} catch {
+											console.log("The actor to delete was not found");
+										}
 									}
 								}
 								break;
