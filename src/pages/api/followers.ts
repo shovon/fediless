@@ -36,7 +36,7 @@ export default async function handler(
 				id: followers,
 				type: "OrderedCollection",
 				totalItems: total,
-				first: `${followers}?page=1`,
+				first: total ? `${followers}?page=1` : undefined,
 			})
 		);
 }
