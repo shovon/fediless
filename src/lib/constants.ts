@@ -7,3 +7,5 @@ export const outbox = `${origin}/api/outbox`;
 export const following = `${origin}/api/following`;
 export const followers = `${origin}/api/followers`;
 export const liked = `${origin}/api/liked`;
+export const posts = `${origin}/api/posts`;
+export const post = `${origin}/api/posts/:id`;

@@ -23,5 +23,9 @@ export async function acceptFollow(inbox: string, object: unknown) {
 		object,
 	};
 
-	await sendActivity(inbox, activity);
+	const response = await sendActivity(inbox, activity);
+	if (response.status >= 400) {
+		console.log(response.status, await response.text());
+		throw new Error("Failed to send accept follow activity");
+	}
 }

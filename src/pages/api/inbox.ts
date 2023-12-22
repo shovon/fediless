@@ -23,11 +23,11 @@ const activityStreamsPrefix = "https://www.w3.org/ns/activitystreams#";
 
 const followActivitySchema = objectMap(
 	{
-		[`${activityStreamsPrefix}#actor`]: "actor",
-		[`${activityStreamsPrefix}#object`]: "actor",
+		[`${activityStreamsPrefix}actor`]: "actor",
+		[`${activityStreamsPrefix}object`]: "object",
 	},
 	{
-		["@id"]: string(),
+		"@id": string(),
 		actor: arrayOf(idNodeSchema),
 		object: arrayOf(idNodeSchema),
 	}
@@ -36,7 +36,7 @@ const followActivitySchema = objectMap(
 const undoActivitySchema = objectMap(
 	{
 		[`${activityStreamsPrefix}#actor`]: "actor",
-		[`${activityStreamsPrefix}#object`]: "actor",
+		[`${activityStreamsPrefix}#object`]: "object",
 	},
 	{
 		["@id"]: string(),
@@ -70,11 +70,12 @@ export default async function handler(
 	const [activity] = nodes;
 
 	switch (true) {
-		case activity["@type"]?.includes(`${activityStreamsPrefix}#Follow`):
+		case activity["@type"]?.includes(`${activityStreamsPrefix}Follow`):
 			{
 				const validation = followActivitySchema.validate(activity);
 				if (!validation.isValid) {
 					// Respond by telling the sender that they screwed up.
+					console.error("Validation error. Value", validation.error.value);
 					res.status(400);
 					res.setHeader("Content-Type", "application/ld+json");
 					res.write(
@@ -99,15 +100,24 @@ export default async function handler(
 						const actorObject = await lookupActor(actor["@id"]);
 						for (const inbox of actorObject.inbox) {
 							// TODO: add to database.
-							prisma.followers.create({
-								data: {
-									actorId: actor["@id"],
-									followId: validation.value["@id"],
-									acceptId: `${actorIRI}#accept/follow/${Date.now()}`,
-								},
-							});
+							console.log("Adding follower");
 							await acceptFollow(inbox["@id"], document);
 						}
+						const result = await prisma.followers.upsert({
+							where: {
+								actorId: actor["@id"],
+							},
+							update: {
+								followId: validation.value["@id"],
+								acceptId: `${actorIRI}#accept/follow/${Date.now()}`,
+							},
+							create: {
+								actorId: actor["@id"],
+								followId: validation.value["@id"],
+								acceptId: `${actorIRI}#accept/follow/${Date.now()}`,
+							},
+						});
+						console.log(result);
 					}
 					break;
 				}
@@ -161,11 +171,12 @@ export default async function handler(
 										if (recipient["@id"] !== actorIRI) {
 											continue;
 										}
-										prisma.followers.delete({
+										await prisma.followers.delete({
 											where: {
 												actorId: recipient["@id"],
 											},
 										});
+										console.log("Deleted follower");
 									}
 								}
 								break;

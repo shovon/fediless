@@ -17,3 +17,10 @@ model Followers {
   followId String
   acceptId String
 }
+
+model Posts {
+  id        Int      @id @default(autoincrement())
+  content   String
+  createdAt DateTime @default(now())
+  sent      Boolean  @default(false)
+}

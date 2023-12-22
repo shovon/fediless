@@ -1,26 +1,27 @@
 import { ClientRequest } from "http";
 import crypto from "crypto";
+import { actor } from "./constants";
 
-export async function sign(
-	req: ClientRequest,
-	key: crypto.KeyObject,
-	headers: string[]
-) {
+export function sign(req: Request, key: crypto.KeyObject, headers: string[]) {
 	const signer = crypto.createSign("sha256");
 
-	const created = [`(created)`, `${Math.floor(Date.now() / 1000)}`];
+	const url = new URL(req.url);
+
+	const creationDate = Math.floor(Date.now() / 1000);
+
+	const created = [`(created)`, `${creationDate}`];
 	const requestTarget = [
 		`(request-target)`,
-		`${req.method.toLowerCase()} ${req.path}`,
+		`${req.method.toLowerCase()} ${url.pathname}`,
 	];
 
 	const encodedHeaders = [
 		created,
 		requestTarget,
 		...headers
-			.filter((e) => req.getHeader(e))
+			.filter((e) => req.headers.get(e))
 			.map((header) => {
-				const value = req.getHeader(header);
+				const value = req.headers.get(header);
 				return [
 					`${header.toLowerCase()}`,
 					`${Array.isArray(value) ? value.join(", ") : value}`,
@@ -32,16 +33,10 @@ export async function sign(
 
 	const signature = signer.sign(key);
 
-	const signatureHex = Array.from(new Uint8Array(signature))
-		.map((b) => b.toString(16).padStart(2, "0"))
-		.join("");
-
-	req.setHeader(
+	req.headers.set(
 		"Signature",
-		`keyId="${
-			process.env.SERVER_HOST
-		}#main-key",algorithm="hs2019",headers="${encodedHeaders
+		`created=${creationDate},keyId="${actor}#main-key",algorithm="hs2019",headers="${encodedHeaders
 			.map(([left]) => left)
-			.join(" ")}",signature="${signatureHex}"`
+			.join(" ")}",signature="${signature.toString("base64")}"`
 	);
 }
