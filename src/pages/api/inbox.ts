@@ -45,8 +45,6 @@ const undoActivitySchema = objectMap(
 	}
 );
 
-type FollowActivity = InferType<typeof followActivitySchema>;
-
 export default async function handler(
 	req: NextApiRequest,
 	res: NextApiResponse
