@@ -35,8 +35,8 @@ const followActivitySchema = objectMap(
 
 const undoActivitySchema = objectMap(
 	{
-		[`${activityStreamsPrefix}#actor`]: "actor",
-		[`${activityStreamsPrefix}#object`]: "object",
+		[`${activityStreamsPrefix}actor`]: "actor",
+		[`${activityStreamsPrefix}object`]: "object",
 	},
 	{
 		["@id"]: string(),
@@ -53,6 +53,7 @@ export default async function handler(
 ) {
 	// TODO: check the digest and signature. Otherwise, people can troll us badly.
 	const document = await JSON.parse(req.body);
+	console.log(JSON.stringify(document, null, 2));
 
 	const nodes = await jsonld.expand(document);
 
@@ -123,7 +124,7 @@ export default async function handler(
 				}
 			}
 			break;
-		case activity["@type"]?.includes(`${activityStreamsPrefix}#Undo`):
+		case activity["@type"]?.includes(`${activityStreamsPrefix}Undo`):
 			{
 				// {
 				//   "@context":"https://www.w3.org/ns/activitystreams",
@@ -137,9 +138,13 @@ export default async function handler(
 				//     "object":"https://feditest.salrahman.com/activity/actors/john13"
 				//   }
 				// }
+
+				console.log("Got request to undo a previous activity");
+
 				const validation = undoActivitySchema.validate(activity);
 				if (!validation.isValid) {
 					// Respond by telling the sender that they screwed up.
+					console.log("The validation failed");
 					res.status(400);
 					res.setHeader("Content-Type", "application/json");
 					res.write(
@@ -155,9 +160,19 @@ export default async function handler(
 				}
 				if (Array.isArray(validation.value.object)) {
 					for (const obj of validation.value.object) {
+						const validation = object({ "@type": arrayOf(unknown()) }).validate(
+							obj
+						);
+						if (!validation.isValid) {
+							continue;
+						}
+
 						switch (true) {
-							case obj["@type"]?.includes(`${activityStreamsPrefix}#Follow`):
+							case validation.value["@type"]?.includes(
+								`${activityStreamsPrefix}Follow`
+							):
 								{
+									console.log("The activity to undo is a follow");
 									const validation = followActivitySchema.validate(obj);
 									if (!validation.isValid) {
 										// Respond by telling the sender that they screwed up.
@@ -171,11 +186,14 @@ export default async function handler(
 										if (recipient["@id"] !== actorIRI) {
 											continue;
 										}
-										await prisma.followers.delete({
-											where: {
-												actorId: recipient["@id"],
-											},
-										});
+										try {
+											await prisma.followers.delete({
+												where: {
+													actorId: recipient["@id"],
+												},
+											});
+										} catch {}
+
 										console.log("Deleted follower");
 									}
 								}

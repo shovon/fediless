@@ -817,7 +817,7 @@ export function any(): Validator<any> {
  * that a value is invalid
  * @returns A validator that will validate *all* objects
  */
-export function unknown(): Validator<any> {
+export function unknown(): Validator<unknown> {
 	return {
 		validate: (value: any) => ({ isValid: true, value }),
 	};

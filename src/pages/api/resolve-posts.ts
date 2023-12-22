@@ -57,9 +57,6 @@ export default async function handler(
 			"https://www.w3.org/ns/activitystreams",
 		] as any);
 
-		console.log(JSON.stringify(activityObject, null, 2));
-		console.log(JSON.stringify(activity, null, 2));
-
 		for (const follower of followers) {
 			const u = new URL(follower.actorId);
 			if (domainsSent.has(u.host)) {
