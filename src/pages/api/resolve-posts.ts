@@ -3,7 +3,7 @@ import { PrismaClient } from "@prisma/client";
 import { lookupActor } from "@/lib/lookup-actor";
 import {
 	actor as mainActorIri,
-	posts as postsUrlTemplate,
+	post as postsUrlTemplate,
 } from "@/lib/constants";
 import { send as sendActivity } from "@/lib/send-activity";
 
@@ -34,12 +34,14 @@ export default async function handler(
 			object: {
 				id: postsUrlTemplate.replace(":id", post.id.toString()),
 				type: "Note",
-				published: "2018-06-23T17:17:11Z",
+				published: post.createdAt.toISOString(),
 				attributedTo: mainActorIri,
 				content: post.content,
 				to: "https://www.w3.org/ns/activitystreams#Public",
 			},
 		};
+
+		console.log(JSON.stringify(activity, null, 2));
 
 		for (const follower of followers) {
 			const u = new URL(follower.actorId);
