@@ -43,6 +43,7 @@ export default async function handler(
 				liked,
 				name: process.env.REAL_NAME,
 				preferredUsername,
+				summary: atob(process.env.PROFILE_SUMMARY ?? ""),
 				publicKey: {
 					id: `${actor}#main-key`,
 					owner: actor,
