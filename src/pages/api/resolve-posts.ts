@@ -70,7 +70,11 @@ export default async function handler(
 				for (const endpoint of actor.endpoints) {
 					if (endpoint.sharedInbox) {
 						for (const sharedInbox of endpoint.sharedInbox) {
-							sendActivity(sharedInbox["@id"], activity);
+							const response = await sendActivity(sharedInbox["@id"], activity);
+							console.log(
+								"Post sent to actor. Reponse status",
+								response.status
+							);
 						}
 					}
 				}
@@ -78,7 +82,8 @@ export default async function handler(
 				domainsSent.add(u.host);
 			} else {
 				for (const inbox of actor.inbox) {
-					sendActivity(inbox["@id"], activity);
+					const response = await sendActivity(inbox["@id"], activity);
+					console.log("Post sent to actor. Reponse status", response.status);
 				}
 			}
 		}
