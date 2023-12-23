@@ -41,7 +41,8 @@ export default async function handler(
 				following,
 				followers,
 				liked,
-				preferredUsername: preferredUsername,
+				name: process.env.REAL_NAME,
+				preferredUsername,
 				publicKey: {
 					id: `${actor}#main-key`,
 					owner: actor,
