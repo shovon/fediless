@@ -63,7 +63,7 @@ export default async function handler(
 				},
 			],
 		});
-		return false;
+		return;
 	}
 
 	const [activity] = nodes;
