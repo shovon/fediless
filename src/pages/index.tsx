@@ -1,10 +1,12 @@
 import type { InferGetServerSidePropsType, GetServerSideProps } from "next";
 import { getPosts } from "./api/posts";
-import { Source_Serif_4 } from "next/font/google";
+import { Source_Serif_4, Roboto } from "next/font/google";
 import parse from "html-react-parser";
 import styles from "@/app/page.module.css";
+import { format } from "date-fns";
 
 const sourceSerif4 = Source_Serif_4({ subsets: ["latin"] });
+const roboto = Roboto({ weight: "400", subsets: ["latin"] });
 
 type Repo = {
 	name: string;
@@ -29,17 +31,29 @@ export default function Index({
 				fontSize: "1.5em",
 			}}
 		>
-			{posts.map((post) => (
-				<div
-					className={sourceSerif4.className}
-					style={{
-						borderBottom: "1px solid black",
-					}}
-					key={post.id}
-				>
-					{parse(post.content)}
-				</div>
-			))}
+			{posts
+				.filter((post) => post.content.trim().length)
+				.map((post) => (
+					<div
+						style={{
+							borderBottom: "1px solid black",
+						}}
+					>
+						<article key={post.id}>
+							<section className={sourceSerif4.className}>
+								{parse(post.content)}
+							</section>
+							<section
+								className={roboto.className}
+								style={{
+									fontSize: "0.75em",
+								}}
+							>
+								{format(post.createdAt, "MMM dd, yyyy hh:mm a")}
+							</section>
+						</article>
+					</div>
+				))}
 		</main>
 	);
 }

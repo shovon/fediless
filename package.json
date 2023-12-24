@@ -12,6 +12,7 @@
 		"@emotion/css": "^11.11.2",
 		"@prisma/client": "^5.7.1",
 		"@types/jsonld": "^1.5.13",
+		"date-fns": "^3.0.6",
 		"html-react-parser": "^5.0.11",
 		"jsonld": "^8.3.2",
 		"next": "14.0.4",
