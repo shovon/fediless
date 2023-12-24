@@ -5,7 +5,15 @@ import { followers } from "@/lib/constants";
 const prisma = new PrismaClient();
 
 export async function getPosts() {
-	return (await prisma.posts.findMany()).map(
+	return (
+		await prisma.posts.findMany({
+			orderBy: [
+				{
+					createdAt: "desc",
+				},
+			],
+		})
+	).map(
 		(post) =>
 			JSON.parse(JSON.stringify(post)) as {
 				id: number;
