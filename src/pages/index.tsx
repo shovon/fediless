@@ -38,6 +38,7 @@ export default function Index({
 						key={post.id}
 						style={{
 							borderBottom: "1px solid black",
+							paddingBottom: "10px",
 						}}
 					>
 						<article>
