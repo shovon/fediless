@@ -35,11 +35,12 @@ export default function Index({
 				.filter((post) => post.content.trim().length)
 				.map((post) => (
 					<div
+						key={post.id}
 						style={{
 							borderBottom: "1px solid black",
 						}}
 					>
-						<article key={post.id}>
+						<article>
 							<section className={sourceSerif4.className}>
 								{parse(post.content)}
 							</section>
